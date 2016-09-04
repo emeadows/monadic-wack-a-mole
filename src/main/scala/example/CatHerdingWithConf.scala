@@ -13,7 +13,7 @@ object CatHerdingWithConf {
 
   type Result[A] = \/[Throwable, A]
 
-//   This is the same as the other examples but now we have db configuration
+  //   This is the same as the other examples but now we have db configuration
   def getCatWithConf(dBConf: DBConf, microchipJson: Json): Result[Cat] = {
     val chip: DecodeResult[Microchip] = parseMicrochip(microchipJson)
     val cat: \/[Throwable, Option[Cat]] = for {
@@ -24,13 +24,13 @@ object CatHerdingWithConf {
     cat.flatMap(_.fold[\/[Throwable, Cat]](-\/(NoValueException))(c => \/-(c)))
   }
 
-  // Requires failure handling
-  def stringToUUID(s: String): \/[Throwable, UUID] =
-    \/.fromTryCatchNonFatal(UUID.fromString(s))
-
   // Requires failure handling, supplied by Argonaut as DecodeResult
   def parseMicrochip(json: Json): DecodeResult[Microchip] =
     json.as[Microchip]
+
+  // Requires failure handling
+  def stringToUUID(s: String): \/[Throwable, UUID] =
+    \/.fromTryCatchNonFatal(UUID.fromString(s))
 
   // Requires failure handling if configuration fails
   def getCatById(dBConf: DBConf)(id: UUID): Result[Option[Cat]] =

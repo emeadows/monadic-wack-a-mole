@@ -14,7 +14,7 @@ object CatHerdingWithConf2 {
   import Syntax2._
 
   // Ties together all of the other methods
-  def getCatWithConf(dBConf: DBConf, microchipJson: Json) = {
+  def getCatWithConf(dBConf: DBConf, microchipJson: Json): Result[Cat] = {
     for {
       chip <- parseMicrochip(microchipJson).liftConfiguredResult
       id <- stringToUUID(chip.id).liftConfiguredResult
@@ -22,13 +22,13 @@ object CatHerdingWithConf2 {
     } yield cat
   }.run(dBConf)
 
-  // Requires failure handling
-  def stringToUUID(s: String): \/[Throwable, UUID] =
-    \/.fromTryCatchNonFatal(UUID.fromString(s))
-
   // Requires failure handling, supplied by Argonaut as DecodeResult
   def parseMicrochip(json: Json): DecodeResult[Microchip] =
     json.as[Microchip]
+
+  // Requires failure handling
+  def stringToUUID(s: String): \/[Throwable, UUID] =
+    \/.fromTryCatchNonFatal(UUID.fromString(s))
 
   // Requires failure handling AND configuration
   def getCatById(id: UUID): ConfiguredResult[DBConf, Cat] =
@@ -36,7 +36,6 @@ object CatHerdingWithConf2 {
       case CrazyCatLadyDb => Cat.allCats.find(_.id == id).liftResult
       case _ => -\/(UnknownDbException)
     }
-
 }
 
 object Syntax2 extends KleisliFunctions {
@@ -53,7 +52,7 @@ object Syntax2 extends KleisliFunctions {
   }
 
   implicit class ResultWithDBConfOps[A](result: Result[A]) {
-    def liftConfiguredResult: ConfiguredResult[DBConf, A] = kleisli[Result, DBConf, A] { (u: DBConf) => result }
+    def liftConfiguredResult: ConfiguredResult[DBConf, A] = kleisli[Result, DBConf, A] { (conf: DBConf) => result }
   }
 
   implicit class ResultOps[A](dr: DecodeResult[A]) {

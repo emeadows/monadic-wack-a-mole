@@ -13,7 +13,7 @@ import scalaz.{-\/, \/-}
 class CatHerdingForBeginnersSpec extends FlatSpec with Matchers {
 
   import CatHerdingForBeginners.getCat
-//  import CatHerdingForBeginners2.getCat
+//    import CatHerdingForBeginners2.getCat
 
   "getCat" should "return an ArgonautDecodeException if json cannot be parsed into a Microchip" in {
     val jsonIn = Parse.parse("{}").toOption.get

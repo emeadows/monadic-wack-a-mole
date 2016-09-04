@@ -12,8 +12,8 @@ import scalaz.{\/-, -\/}
 
 class CatHerdingWithConfSpec extends FlatSpec with Matchers {
 
-  import CatHerdingWithConf.getCatWithConf
-//  import CatHerdingWithConf2.getCatWithConf
+//  import CatHerdingWithConf.getCatWithConf
+    import CatHerdingWithConf2.getCatWithConf
 
   "getCat" should "return an ArgonautDecodeException if json cannot be parsed into a Microchip" in {
     val jsonIn = Parse.parse("{}").toOption.get

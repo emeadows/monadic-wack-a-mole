@@ -9,6 +9,7 @@ import model.{Cat, Microchip}
 import scalaz.{-\/, \/, \/-}
 
 object CatHerdingForBeginners2 {
+
   import Syntax1._
 
   def getCat(microchipJson: Json): Result[Cat] =
@@ -18,14 +19,14 @@ object CatHerdingForBeginners2 {
       cat <- getCatById(id).liftResult
     } yield cat
 
-  // Requires failure handling
-  def stringToUUID(s: String): \/[Throwable, UUID] =
-    \/.fromTryCatchNonFatal(UUID.fromString(s))
 
   // Requires failure handling, supplied by Argonaut as DecodeResult
   def parseMicrochip(json: Json): DecodeResult[Microchip] =
     json.as[Microchip]
 
+  // Requires failure handling
+  def stringToUUID(s: String): \/[Throwable, UUID] =
+    \/.fromTryCatchNonFatal(UUID.fromString(s))
 
   // A cache miss (i.e. a None) could be a valid case or a failure
   def getCatById(id: UUID): Option[Cat] = Cat.allCats.find(_.id == id)
@@ -47,6 +48,7 @@ object Syntax1 {
     // folds over the option, converting this in to a Result[A] with a failure if none
     def liftResult: Result[A] = option.fold[Result[A]](-\/(NoValueException))(value => \/-(value))
   }
+
 }
 
 
