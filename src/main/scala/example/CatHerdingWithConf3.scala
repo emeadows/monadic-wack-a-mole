@@ -2,7 +2,6 @@ package example
 
 import java.util.UUID
 
-
 import exceptions._
 import io.circe.{Decoder, Json}
 import model.Microchip._
@@ -10,16 +9,23 @@ import model._
 
 import scala.util.Try
 
-object CatHerdingWithConf2 {
+object CatHerdingWithConf3 {
 
-  import Syntax2._
+  import Syntax3._
   // Ties together all of the other methods
 
   def getCatWithConf(dBConf: DBConf, microchipJson: Json): Result[Cat] =
     for {
-       microchip <-  parseMicrochip(microchipJson).liftResult
-       uuid <- stringToUUID(microchip.id)
-       cat <- getCatById(uuid).run(dBConf)
+      microchip <-  parseMicrochip(microchipJson).liftResult
+      uuid <- stringToUUID(microchip.id)
+      cat <- catReader(uuid).run(dBConf)
+    } yield cat
+
+  def getCatNameWithConf(dBConf: DBConf, microchipJson: Json): Result[String] =
+    for {
+      microchip <-  parseMicrochip(microchipJson).liftResult
+      uuid <- stringToUUID(microchip.id)
+      cat <- nameReader(uuid).run(dBConf)
     } yield cat
 
 
@@ -32,25 +38,31 @@ object CatHerdingWithConf2 {
     triedUuid.fold[Either[Throwable, UUID]](t => Left(t), id => Right(id))
   }
 
-  // Requires failure handling AND configuration
-  def getCatById(id: UUID): ConfiguredResult[DBConf, Cat] =
-    ConfiguredResult[DBConf, Cat] {
+  def catReader(id: UUID) =
+    ResultReader[DBConf, Cat] {
       case CrazyCatLadyDb => Cat.allCats.find(_.id == id).liftResult
       case _ => Left(UnknownDbException)
     }
+
+  def nameReader(catId: UUID) =
+    catReader(catId).map {
+      case catResult => catResult.fold[Result[String]](
+        fail => Left(fail),
+        cat => Right(cat.name)
+      )
+    }
 }
 
-object Syntax2 {
+object Syntax3 {
 
-  import cats.data.Kleisli
+  import cats.data.{Kleisli, Reader, ReaderT}
 
   type Result[A] = Either[Throwable, A]
-  // the first type needs to be a type constructor
-  type ConfiguredResult[DBConf, A] = Kleisli[Result, DBConf, A]
+  type ResultReader[DBConf, A] = ReaderT[Result, DBConf, A]
 
-  object ConfiguredResult {
-    def apply[DBConf, A](run: DBConf => Result[A]): ConfiguredResult[DBConf, A] =
-      Kleisli[Result, DBConf, A](run)
+  object ResultReader {
+    def apply[Config, A](run: Config => Result[A]): Reader[Config, Result[A]] =
+      Reader[Config, Result[A]](run)
   }
 
   implicit class ResultOps[A](dr: Decoder.Result[A]) {
@@ -58,7 +70,7 @@ object Syntax2 {
     // for both success and failure values
     def liftResult: Result[A] = dr.fold(fail => Left(CirceDecodeException), success => Right(success))
 
-    def liftConfiguredResult: ConfiguredResult[DBConf, A] =
+    def liftConfiguredResult: ResultReader[DBConf, A] =
       Kleisli[Result, DBConf, A] { (u: DBConf) => dr.liftResult }
   }
 
@@ -68,9 +80,7 @@ object Syntax2 {
   }
 
   implicit class ResultWithDBConfOps[A](result: Result[A]) {
-    def liftConfiguredResult: ConfiguredResult[DBConf, A] =
+    def liftConfiguredResult: ResultReader[DBConf, A] =
       Kleisli[Result, DBConf, A] { (conf: DBConf) => result }
   }
-
-
 }

@@ -1,10 +1,11 @@
 package model
 
 import java.util.UUID
+import io.circe._
+import io.circe.generic.semiauto._
 
-import argonaut.Argonaut._
-import argonaut.{CodecJson, DecodeJson, EncodeJson}
 import model.Microchip._
+
 
 case class Cat(id: UUID, name: String)
 
@@ -16,16 +17,22 @@ object Cat {
 
   val allCats = List(snowball, felix, jasper)
 
-  implicit def UUIDEncodeJson: EncodeJson[UUID] =
-    EncodeJson((id: UUID) => ("id" := id.toString) ->: jEmptyObject)
+  implicit val UUIDEncodeJson: Encoder[UUID] = new Encoder[UUID] {
+    final def apply(a: UUID): Json = Json.obj(
+      ("id", Json.fromString(a.toString))
+    )
+  }
 
-  implicit def UUIDDecodeJson: DecodeJson[UUID] =
-    DecodeJson(c => for {
-      id <- (c --\ "id").as[String]
-    } yield UUID.fromString(id))
+  implicit def UUIDDecodeJson: Decoder[UUID] = new Decoder[UUID] {
+    final def apply(c: HCursor): Decoder.Result[UUID] =
+      for {
+        id <- c.downField("id").as[String]
+      } yield UUID.fromString(id)
+  }
 
-  implicit def CatCodec: CodecJson[Cat] = casecodec2(Cat.apply, Cat.unapply)("id", "name")
+  implicit def CatEncodeJson: Encoder[Cat] = deriveEncoder[Cat]
 
+  implicit def CatDecodeJson: Decoder[Cat] = deriveDecoder[Cat]
 }
 
 
